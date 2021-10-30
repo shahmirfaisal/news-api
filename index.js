@@ -1,12 +1,9 @@
 const express = require("express");
 const cheerio = require("cheerio");
 const axios = require("axios");
-const cors = require("cors");
 const { extractArticles } = require("./utils");
 
 const app = express();
-
-app.use(cors());
 
 const urls = {
   // For getting a single news
