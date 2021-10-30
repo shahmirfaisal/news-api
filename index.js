@@ -1,44 +1,96 @@
 const express = require("express");
 const cheerio = require("cheerio");
 const axios = require("axios");
+const cors = require("cors");
+const { extractArticles } = require("./utils");
 
 const app = express();
 
-const URL = "https://www.dawn.com/latest-news";
+app.use(cors());
 
-app.get("/news", async (req, res, next) => {
+const urls = {
+  // For getting a single news
+  news: (id) => `https://www.dawn.com/news/${id}`,
+
+  latest: "https://www.dawn.com/latest-news",
+  coronavirus: "https://www.dawn.com/trends/coronavirus",
+  sport: "https://www.dawn.com/sport",
+  technology: "https://www.dawn.com/tech",
+  business: "https://www.dawn.com/business",
+};
+
+// Fetching all the categories
+app.get("/categories", (req, res, next) => {
+  const categories = [
+    "Latest",
+    "Coronavirus",
+    "Sport",
+    "Technology",
+    "Business",
+  ];
+  res.json(categories);
+});
+
+app.get("/Latest", async (req, res, next) => {
   const articles = [];
 
-  const htmlResponse = await axios.get(URL);
+  const htmlResponse = await axios.get(urls.latest);
   const data = htmlResponse.data;
 
-  const $ = cheerio.load(data);
-
-  $("article.box.story").each(function () {
-    const title = $(this).find(".story__title a").text();
-    const coverImage = $(this).find(".media img").attr("src");
-    const link = $(this).find(".story__title a").attr("href");
-    const id = link.split("news/")[1].split("/")[0];
-    const excerpt = $(this).find(".story__excerpt").text();
-    const time = $(this).find(".story__time").text();
-
-    articles.push({
-      id,
-      title,
-      coverImage,
-      excerpt,
-      time,
-    });
-  });
+  extractArticles(data, ".tabs__pane.active article.box.story", articles);
 
   res.json(articles);
 });
 
+app.get("/Coronavirus", async (req, res, next) => {
+  const articles = [];
+
+  const htmlResponse = await axios.get(urls.coronavirus);
+  const data = htmlResponse.data;
+
+  extractArticles(data, ".stories-listing article.box.story", articles);
+
+  res.json(articles);
+});
+
+app.get("/Sport", async (req, res, next) => {
+  const articles = [];
+
+  const htmlResponse = await axios.get(urls.sport);
+  const data = htmlResponse.data;
+
+  extractArticles(data, "article.box.story", articles);
+
+  res.json(articles);
+});
+
+app.get("/Technology", async (req, res, next) => {
+  const articles = [];
+
+  const htmlResponse = await axios.get(urls.technology);
+  const data = htmlResponse.data;
+
+  extractArticles(data, "article.box.story", articles);
+
+  res.json(articles);
+});
+
+app.get("/Business", async (req, res, next) => {
+  const articles = [];
+
+  const htmlResponse = await axios.get(urls.business);
+  const data = htmlResponse.data;
+
+  extractArticles(data, ".mb-4 > article.box.story", articles);
+
+  res.json(articles);
+});
+
+// Getting a specific news
 app.get("/news/:id", async (req, res, next) => {
   const { id } = req.params;
-  const BASE_URL = "https://www.dawn.com/news";
 
-  const htmlResponse = await axios.get(`${BASE_URL}/${id}`);
+  const htmlResponse = await axios.get(urls.news(id));
   const data = htmlResponse.data;
   const $ = cheerio.load(data);
 
@@ -59,4 +111,4 @@ app.get("/news/:id", async (req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Listening at ${PORT}`));
+app.listen(PORT);
